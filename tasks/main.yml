@@ -1,0 +1,40 @@
+# Copyright (c) 2023, Bennett Samowich <bennett@foolean.org>
+# All rights reserved
+# SPDX short identifier: BSD-3-Clause
+---
+
+- name: Set a fact of mountpoints
+  ansible.builtin.set_fact:
+    mountpoints: "{{ ansible_mounts | map(attribute='mount') | list }}"
+
+- name: CIS | Ensure mounts are configured correctly
+  become: true
+  ansible.posix.mount:
+      path: "{{ item.mountpoint }}"
+      src: "{{ ansible_mounts | json_query(device_query) }}"
+      fstype: "{{ ansible_mounts | json_query(fstype_query) }}"
+      opts: "{{ item.opts }}"
+      state: present
+  vars:
+    device_query: "[?mount == '{{ item.mountpoint }}'] | [0].device"
+    fstype_query: "[?mount == '{{ item.mountpoint }}'] | [0].fstype"
+  when: item.mountpoint in mountpoints
+  with_items:
+    - {mountpoint: "/tmp", opts: "nodev,noexec,nosuid"}
+    - {mountpoint: "/var", opts: "nodev,noexec,nosuid"}
+    - {mountpoint: "/var/tmp", opts: "nodev,noexec,nosuid"}
+    - {mountpoint: "/var/log", opts: "nodev,noexec,nosuid"}
+    - {mountpoint: "/home", opts: "nodev,nosuid,usrquota,grpquota"}
+    - {mountpoint: "/var/log/audit", opts: "nodev,noexec,nosuid"}
+
+
+- name: CIS | Ensure /dev/shm is configured correctly
+  become: true
+  ansible.posix.mount:
+    path: "/dev/shm"
+    src: "tmpfs"
+    fstype: "tmpfs"
+    opts: "nodev,noexec,nosuid"
+    passno: "0"
+    dump: "0"
+    state: mounted
