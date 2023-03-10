@@ -45,6 +45,7 @@ This role will skip any mountpoint that does not exist.
 ## Supported operating systems
 
     * Debian (11)
+    * Raspbian (11)
     * RedHat (8)
     * Rocky (8)
 
